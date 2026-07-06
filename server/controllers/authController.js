@@ -50,6 +50,12 @@ exports.registerUser = async (req, res) => {
       otpExpiry
     });
 
+res.status(201).json({
+  message: 'User registered successfully. Please verify OTP sent to your email.',
+  userId: user._id,
+  email: user.email
+});
+
     // Send OTP email
     const message = `Your OTP for verification is: ${otp}\n\nThis OTP is valid for 10 minutes.`;
     try {
