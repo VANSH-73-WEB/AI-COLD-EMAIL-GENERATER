@@ -6,17 +6,12 @@ const sendEmail = async (options) => {
             throw new Error('Email credentials not configured in environment variables');
         }
 
-       const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false, // true for port 465, false for other ports
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS,
             },
-            tls: {
-                rejectUnauthorized: false // Prevents cloud firewall blocks
-            }
         });
 
         const mailOptions = {
@@ -28,12 +23,19 @@ const sendEmail = async (options) => {
         };
 
         const info = await transporter.sendMail(mailOptions);
+        await transporter.verify();
+console.log("SMTP Connected Successfully");
         console.log('Email sent:', info.response);
         return { success: true, message: 'Email sent successfully', messageId: info.messageId };
     } catch (error) {
-        console.error('Email sending error:', error.message);
-        throw new Error(`Failed to send email: ${error.message}`);
-    }
+    console.error("Full Error:", error);
+    console.error("Message:", error.message);
+    console.error("Code:", error.code);
+    console.error("Command:", error.command);
+    console.error("Stack:", error.stack);
+
+    throw error;
+}
 };
 
 module.exports = sendEmail;
