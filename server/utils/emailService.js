@@ -1,42 +1,40 @@
-const nodemailer = require('nodemailer');
+const axios = require('axios');
 
 const sendEmail = async (options) => {
-    try {
-        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-            throw new Error('Email credentials not configured in environment variables');
-        }
-const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    },
-});
+  try {
+    if (!process.env.BREVO_API_KEY) {
+      throw new Error('BREVO_API_KEY not configured in environment variables');
+    }
+    if (!process.env.EMAIL_FROM) {
+      throw new Error('EMAIL_FROM not configured in environment variables');
+    }
 
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: options.email,
-            subject: options.subject,
-            text: options.message,
-            html: `<p>${options.message}</p>`,
-        };
+    const response = await axios.post(
+      'https://api.brevo.com/v3/smtp/email',
+      {
+        sender: { email: process.env.EMAIL_FROM, name: 'AI Cold Mail Generator' },
+        to: [{ email: options.email }],
+        subject: options.subject,
+        textContent: options.message,
+        htmlContent: `<p>${options.message}</p>`,
+      },
+      {
+        headers: {
+          'api-key': process.env.BREVO_API_KEY,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        timeout: 10000, // 10s — fails fast instead of hanging
+      }
+    );
 
-        const info = await transporter.sendMail(mailOptions);
-        await transporter.verify();
-console.log("SMTP Connected Successfully");
-        console.log('Email sent:', info.response);
-        return { success: true, message: 'Email sent successfully', messageId: info.messageId };
-    } catch (error) {
-    console.error("Full Error:", error);
-    console.error("Message:", error.message);
-    console.error("Code:", error.code);
-    console.error("Command:", error.command);
-    console.error("Stack:", error.stack);
-
-    throw error;
-}
+    console.log('Email sent successfully:', response.data.messageId);
+    return { success: true, message: 'Email sent successfully', messageId: response.data.messageId };
+  } catch (error) {
+    const detail = error.response?.data?.message || error.message;
+    console.error('Email sending error:', detail);
+    throw new Error(`Failed to send email: ${detail}`);
+  }
 };
 
 module.exports = sendEmail;
