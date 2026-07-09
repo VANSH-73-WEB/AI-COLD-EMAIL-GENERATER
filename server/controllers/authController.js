@@ -50,26 +50,23 @@ exports.registerUser = async (req, res) => {
       otpExpiry
     });
 
-    // Respond immediately — do not make the client wait on the email send.
-    // This is the ONLY response for this request.
+    // Send OTP email
+    const message = `Your OTP for verification is: ${otp}\n\nThis OTP is valid for 10 minutes.`;
+    try {
+      await sendEmail({ email: user.email, subject: 'Email Verification OTP - AI Cold Mail Generator', message });
+    } catch (error) {
+      console.log('Email sending error:', error.message);
+      // Still allow registration even if email fails
+    }
+
     res.status(201).json({
       message: 'User registered successfully. Please verify OTP sent to your email.',
       userId: user._id,
       email: user.email
     });
-
-    // Send OTP email in the background. Not awaited, no res.json here —
-    // any failure is just logged, never sent back to the already-responded client.
-    const message = `Your OTP for verification is: ${otp}\n\nThis OTP is valid for 10 minutes.`;
-    sendEmail({ email: user.email, subject: 'Email Verification OTP - AI Cold Mail Generator', message })
-      .catch((error) => {
-        console.log('Email sending error:', error.message);
-      });
   } catch (error) {
     console.error('Registration error:', error);
-    if (!res.headersSent) {
-      res.status(500).json({ message: 'Registration failed', error: error.message });
-    }
+    res.status(500).json({ message: 'Registration failed', error: error.message });
   }
 };
 
@@ -121,9 +118,7 @@ exports.verifyOTP = async (req, res) => {
     });
   } catch (error) {
     console.error('OTP verification error:', error);
-    if (!res.headersSent) {
-      res.status(500).json({ message: 'Verification failed', error: error.message });
-    }
+    res.status(500).json({ message: 'Verification failed', error: error.message });
   }
 };
 
@@ -143,7 +138,7 @@ exports.loginUser = async (req, res) => {
     }
 
     if (!user.isVerified) {
-      return res.status(401).json({
+      return res.status(401).json({ 
         message: 'Please verify your email first',
         userId: user._id
       });

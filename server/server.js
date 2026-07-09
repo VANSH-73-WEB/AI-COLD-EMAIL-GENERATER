@@ -25,7 +25,7 @@ connectDB();
 const app = express();
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://ai-cold-email-generater.vercel.app'
+  // 'https://ai-cold-email-generater.vercel.app'
 ];
 
 app.use(cors({
