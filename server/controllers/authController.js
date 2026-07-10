@@ -41,23 +41,27 @@ exports.registerUser = async (req, res) => {
 
     const otp = generateOTP();
     const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+const user = await User.create({
+  name: name.trim(),
+  email: email.toLowerCase(),
+  password,
+  otp,
+  otpExpiry
+});
 
-    const user = await User.create({
-      name: name.trim(),
-      email: email.toLowerCase(),
-      password,
-      otp,
-      otpExpiry
-    });
+// Respond immediately — don't make the client wait on the email
+res.status(201).json({
+  message: 'User registered successfully. Please verify OTP sent to your email.',
+  userId: user._id,
+  email: user.email
+});
 
-    // Send OTP email
-    const message = `Your OTP for verification is: ${otp}\n\nThis OTP is valid for 10 minutes.`;
-    try {
-      await sendEmail({ email: user.email, subject: 'Email Verification OTP - AI Cold Mail Generator', message });
-    } catch (error) {
-      console.log('Email sending error:', error.message);
-      // Still allow registration even if email fails
-    }
+// Send OTP email in the background (not awaited, no second res.json)
+const message = `Your OTP for verification is: ${otp}\n\nThis OTP is valid for 10 minutes.`;
+sendEmail({ email: user.email, subject: 'Email Verification OTP - AI Cold Mail Generator', message })
+  .catch((error) => {
+    console.log('Email sending error:', error.message);
+  });
 
     res.status(201).json({
       message: 'User registered successfully. Please verify OTP sent to your email.',
