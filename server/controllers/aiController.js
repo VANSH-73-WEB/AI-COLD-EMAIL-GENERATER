@@ -1,6 +1,6 @@
 const axios = require('axios');
 const EmailHistory = require('../models/EmailHistory');
-
+const redisClient = require('../config/redis');
 exports.generateEmail = async (req, res) => {
   try {
     const { prompt } = req.body;
@@ -20,6 +20,8 @@ exports.generateEmail = async (req, res) => {
     if (prompt.length > 2000) {
       return res.status(400).json({ message: 'Prompt cannot exceed 2000 characters' });
     }
+    const cacheKey = `email:${req.user._id}:${prompt.trim()}`;
+   
 
     // Call Groq API (Free tier - No quota issues!)
     const groqApiKey = process.env.GROQ_API_KEY;
@@ -138,6 +140,11 @@ Clear CTA.
 Return ONLY valid JSON.`;
     
     const fullPrompt = `${systemPrompt}\n\nUser REQUEST: "${prompt.trim()}"\n\nGenerate STRONG cold email even if prompt is short. Make smart assumptions. Return ONLY valid JSON:\n{"subject": "...", "emailBody": "...", "linkedInDM": "...", "followUpEmail": "..."}`;
+     const cachedResponse = await redisClient.get(cacheKey);
+     if (cachedResponse) {
+      console.log('Cache hit for key:', cacheKey);
+      return res.status(200).json(JSON.parse(cachedResponse));
+    }
     const aiResponse = await axios.post(
       'https://api.groq.com/openai/v1/chat/completions',
       {
@@ -204,6 +211,15 @@ Return ONLY valid JSON.`;
       linkedInDM: emailData.linkedInDM,
       followUpEmail: emailData.followUpEmail
     });
+
+    // Cache the response
+   await redisClient.set(
+    cacheKey,
+    JSON.stringify(historyEntry),
+    {
+        EX: 3600
+    }
+); // Cache for 1 hour
 
     res.status(200).json(historyEntry);
   } catch (error) {
