@@ -1,98 +1,309 @@
 # AI Cold Email Generator (Monorepo)
 
-A fully dockerized full-stack MERN application that uses AI to generate customized cold emails, LinkedIn DMs, and follow-up emails based on user prompts.
-
-## Features Added
-- **Monorepo setup**: Single `package.json` to install and run the entire stack concurrently.
-- **Docker & Docker Compose**: Bootstraps the Node API, React Frontend, and MongoDB database automatically in isolated containers.
-- **CI/CD via GitHub Actions**: Ensures that all dependencies install correctly and frontend builds continuously upon pushing changes to GitHub.
+A fully dockerized full-stack MERN application that uses AI to generate personalized **Cold Emails**, **LinkedIn DMs**, and **Follow-up Emails** using the Groq LLM API. The application includes JWT authentication, MongoDB for persistent storage, Redis for caching AI responses, Docker support, and CI/CD with GitHub Actions.
 
 ---
 
-## 🚀 How to Run Locally (Using Concurrently)
+# 🚀 Features
 
-**1. Install all dependencies**  
-Run this command from the root folder (it installs root, server, and client Node dependencies):
-\`\`\`bash
+- 🔐 JWT Authentication (Register/Login)
+- 🤖 AI-powered Cold Email Generation using Groq LLM
+- 💼 Generates:
+  - Cold Email
+  - LinkedIn DM
+  - Follow-up Email
+- 📜 Email History stored in MongoDB
+- ⚡ Redis Caching for repeated prompts
+- 🐳 Docker & Docker Compose support
+- 📦 Monorepo architecture
+- 🔄 GitHub Actions CI/CD pipeline
+- ☁️ Ready for deployment on Render + Vercel
+
+---
+
+# 🛠 Tech Stack
+
+### Frontend
+- React.js
+- Vite
+- Axios
+- React Router
+
+### Backend
+- Node.js
+- Express.js
+- MongoDB + Mongoose
+- Redis
+- JWT Authentication
+- Groq API
+
+### DevOps
+- Docker
+- Docker Compose
+- GitHub Actions
+- Render
+- Vercel
+
+---
+
+# 📂 Project Structure
+
+```
+AI-COLD-MAIL-GENERATOR-MONOREPO/
+│
+├── client/
+├── server/
+│   ├── config/
+│   ├── controllers/
+│   ├── middleware/
+│   ├── models/
+│   ├── routes/
+│   └── server.js
+│
+├── docker-compose.yml
+├── package.json
+└── README.md
+```
+
+---
+
+# 🚀 Run Locally (Without Docker)
+
+## 1. Install Dependencies
+
+```bash
 npm run install:all
-\`\`\`
+```
 
-**2. Setup your Environment Variables**  
-- Create a `.env` in the `/server` folder based on `.env.example`. Make sure your `MONGO_URI` is correctly pointing to your preferred MongoDB instance.  
-- Create a `.env` in the `/client` folder with: `VITE_API_URL=http://localhost:5000/api`
+---
 
-**3. Run the Monorepo**  
-Start both the Frontend and Backend simultaneously:
-\`\`\`bash
+## 2. Backend Environment Variables
+
+Create `server/.env`
+
+```env
+PORT=5000
+
+MONGODB_URI=your_mongodb_uri
+
+JWT_SECRET=your_jwt_secret
+
+GROQ_API_KEY=your_groq_api_key
+
+REDIS_URL=redis://localhost:6379
+```
+
+---
+
+## 3. Frontend Environment Variables
+
+Create `client/.env`
+
+```env
+VITE_API_URL=http://localhost:5000/api
+```
+
+---
+
+## 4. Start MongoDB & Redis
+
+If using Docker only for infrastructure:
+
+```bash
+docker compose up -d mongo redis
+```
+
+---
+
+## 5. Run Frontend & Backend
+
+```bash
 npm run dev
-\`\`\`
-The GUI will be on `http://localhost:5173` and the API firmly rooted at `http://localhost:5000`.
+```
+
+Frontend
+
+```
+http://localhost:5173
+```
+
+Backend
+
+```
+http://localhost:5000
+```
 
 ---
 
-## 🐳 How to Run with Docker
+# 🐳 Run Using Docker
 
-If you prefer using Docker, you don't even need to install Node locally. Docker Compose will spin up 3 instances automatically:
-1. React Frontend Container
-2. Node API Container
-3. MongoDB Database Container
+The application is fully containerized.
 
-**Steps:**
-1. Be in the root folder.
-2. Ensure Docker Desktop is open and running.
-3. Build and spin up the architecture:
-   \`\`\`bash
-   docker-compose up --build
-   \`\`\`
-   *(Note: This uses the environment variables configured within the `docker-compose.yml` file. Update the secrets inside that file before running it in production).*
+## Services
 
-To stop containers:
-\`\`\`bash
-docker-compose down
-\`\`\`
+- React Frontend
+- Express Backend
+- MongoDB
+- Redis
 
----
+Start all services
 
-## 🔁 CI/CD (GitHub Actions Pipeline)
+```bash
+docker compose up --build
+```
 
-This repository includes a `.github/workflows/pipeline.yml` file. 
+Run in background
 
-Whenever you push to `main` (or create a Pull Request against it), GitHub Actions will automatically:
-- Checkout your code.
-- Setup Node.js v18.
-- Install Root, Client, and Server dependencies respectively.
-- Run a `npm run build` on your `/client` to ensure Vite successfully bundles the frontend. 
+```bash
+docker compose up -d
+```
 
-It prevents bad pushes from making it effectively resolving broken dependencies early on.
+Stop containers
+
+```bash
+docker compose down
+```
 
 ---
 
-## Deployment Guide (Free Tier)
+# ⚡ Redis Caching
 
-### Deploying Backend on Render
+The application caches AI-generated responses using Redis.
 
-1. Create an account on [Render](https://render.com/).
-2. Push this whole repository to GitHub.
-3. On Render, click **New +** and select **Web Service**.
-4. Connect your GitHub repository.
-5. Configure the Web Service:
-   - **Name**: ai-cold-email-backend
-   - **Root Directory**: `server`
-   - **Environment**: Node
-   - **Build Command**: `npm install`
-   - **Start Command**: `node server.js`  *(Make sure to use node instead of nodemon for production)*
-   - **Instance Type**: Free
-6. Under **Environment Variables**, add all the variables from your `.env` file (e.g. `MONGO_URI`, `JWT_SECRET`, `AI_API_KEY`).
-7. Click **Create Web Service**.
+Cache Key Format
 
-### Deploying Frontend on Vercel
+```
+email:<userId>:<normalizedPrompt>
+```
 
-1. Create an account on [Vercel](https://vercel.com/).
-2. Click **Add New... > Project** and import your GitHub repository.
-3. Configure the Project:
-   - **Framework Preset**: Vite
-   - **Root Directory**: `client`
-4. Under **Environment Variables**, add:
-   - `VITE_API_URL`: Your newly minted Backend URL + `/api` (e.g., `https://ai-backend.onrender.com/api`)
-5. Click **Deploy**. Vercel will deploy your frontend seamlessly.
-6. **Important**: Remember to go back to Render and update your backend `FRONTEND_URL` Variable to the Vercel domain to dodge tricky CORS errors.
+Example
+
+```
+email:6a535a7b286b87bb24ce8310:backend engineer at microsoft
+```
+
+When the same authenticated user submits the same prompt again:
+
+- No Groq API request is made.
+- Response is served directly from Redis.
+- Cache TTL: **1 hour (3600 seconds)**.
+
+Example server log
+
+```text
+Cache hit for key: email:6a535a7b286b87bb24ce8310:backend engineer at microsoft
+```
+
+---
+
+# 🔄 CI/CD
+
+GitHub Actions automatically:
+
+- Installs dependencies
+- Builds the React application
+- Verifies project integrity on every push and Pull Request
+
+Workflow
+
+```
+.github/workflows/pipeline.yml
+```
+
+---
+
+# 🚀 Deployment
+
+## Backend (Render)
+
+Create a **Web Service**
+
+Settings
+
+```
+Root Directory: server
+
+Build Command:
+npm install
+
+Start Command:
+node server.js
+```
+
+### Environment Variables
+
+```
+MONGODB_URI=...
+
+JWT_SECRET=...
+
+GROQ_API_KEY=...
+
+REDIS_URL=<Your Redis Connection URL>
+```
+
+> **Important:** If using Redis in production, create a Redis (Key Value) service (e.g., Render Key Value or another hosted Redis provider) and use the connection URL it provides. `redis://redis:6379` only works inside Docker Compose.
+
+---
+
+## Frontend (Vercel)
+
+Root Directory
+
+```
+client
+```
+
+Environment Variable
+
+```
+VITE_API_URL=https://your-render-backend.onrender.com/api
+```
+
+After deployment, update the backend CORS configuration to allow your Vercel domain.
+
+---
+
+# 📸 Application Flow
+
+```
+User
+   │
+   ▼
+React Frontend
+   │
+   ▼
+Express Backend
+   │
+   ▼
+Redis Cache
+   │
+   ├── Cache Hit
+   │      │
+   │      ▼
+   │  Return Response
+   │
+   └── Cache Miss
+          │
+          ▼
+      Groq API
+          │
+          ▼
+     Store in Redis
+          │
+          ▼
+      MongoDB History
+          │
+          ▼
+      Return Response
+```
+
+---
+
+# 👨‍💻 Author
+
+**Vansh Parashar**
+
+Computer Science Engineer | MERN Stack Developer
+
+GitHub: https://github.com/VANSH-73-WEB
